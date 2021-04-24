@@ -1,0 +1,36 @@
+# Ignore random Apple files.
+.AppleDB
+.AppleDesktop
+.AppleDouble
+.DS_Store
+.DocumentRevisions-V100
+.LSOverride
+.Spotlight-V100
+.TemporaryItems
+.Trashes
+.VolumeIcon.icns
+._*
+.apdisk
+.fseventsd
+Icon
+Network Trash Folder
+Temporary Items
+
+# Ignore random Windows files.
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+.vscode
+*.code-workspace
+
+# Ignore editor temp files.
+*~
+.*.sw?
+\#*\#
+Session.vim
+.netrwhist
+
+# Ignore node stuff
+node_modules
+
+# Ignore build product(s)
