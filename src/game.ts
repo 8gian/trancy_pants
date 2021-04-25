@@ -4,12 +4,16 @@ let tranceLevel = 0
 let noiseLevel = 0
 let lastTickTime = 0
 let canvas: HTMLCanvasElement
+// var introContainer = new createjs.Container()
+var gameContainer = new createjs.Container()
+// var youWonContainer = new createjs.Container()
 var outerwall = new createjs.Shape();
 var innerwall = new createjs.Shape();
 var dashboard_bg = new createjs.Shape();
 var dashboard_fg = new createjs.Shape();
 var trancelabel = new createjs.Text("Trance level:", "20px Arial", "#bdbef2");
 var noiselabel = new createjs.Text("Noise level:", "20px Arial", "#bdbef2");
+var youWonText = new createjs.Text("You won!", "20px Arial", "#bdbef2");
 var tranceleveltext = new createjs.Text("#", "20px Arial", "#bdbef2");
 var noiseleveltext = new createjs.Text("#", "20px Arial", "#bdbef2");
 var trancetable = new createjs.Shape();
@@ -92,90 +96,82 @@ function updateTranceLevel(deltaTime: number) {
 }
 
 function init() {
-  playGameScene();
+  playIntroScene();
+  // playGameScene();
+}
+
+// intro page function
+function playIntroScene() {
+  // make the stage
+  stage = new createjs.Stage('demoCanvas')
+  canvas = <HTMLCanvasElement>stage.canvas
+  
+  // elements of the title page
+  var cabinBitmap = new createjs.Bitmap("res/introcabin.jpg");
+  cabinBitmap.x = cabinBitmap.y = 0
+  cabinBitmap.scaleX = cabinBitmap.scaleY = .45
+  // introContainer.addChild(cabinBitmap)
+
+  stage.addChild(cabinBitmap)
+  //  wait a half second for the cabin image to load before updating the stage
+  setTimeout(function () {
+    stage.update()
+}, 500);
+
+  // wait 3 seconds then start game
+  setTimeout(function () {
+    playGameScene()
+}, 3000);
 }
 
 function playGameScene() {
-  // create a Stage by getting a reference to a canvas
-  stage = new createjs.Stage('demoCanvas')
   canvas = <HTMLCanvasElement>stage.canvas
-  // create a Shape DisplayObject
-  // let circle = new createjs.Shape()
-  // circle.graphics.beginFill('red').drawCircle(0, 0, 40)
-  // Set position of Shape instance.
-  // circle.x = circle.y = 150
-  // Add Shape instance to stage display list.
-  // stage.addChild(circle)
 
   // create a background rectangle
   outerwall.graphics.beginFill("#4d1c20").drawRect(0, 0, canvas.width, canvas.height)
-  stage.addChild(outerwall)
-  stage.setChildIndex(outerwall, 0)
 
   // create the inner rectangle for the "floor" of the cabin
   innerwall.graphics.beginFill("#7e6a94").drawRect(15, 15, canvas.width - 30, canvas.height - 30)
-  stage.addChild(innerwall)
-  stage.setChildIndex(innerwall, 1)
 
   // dashboard displaying trance level and noise level
   dashboard_bg.graphics.beginFill("#141670").drawRoundRectComplex(0, 0, 400, 120, 5, 5, 5, 5)
   dashboard_bg.x = 200
   dashboard_bg.y = 30
-  stage.addChild(dashboard_bg)
 
   dashboard_fg.graphics.beginFill("#393cdb").drawRoundRectComplex(0, 0, 380, 100, 5, 5, 5, 5)
   dashboard_fg.x = 210
   dashboard_fg.y = 40
-  stage.addChild(dashboard_fg)
 
   // metrics text labels
   trancelabel.x = 225
   trancelabel.y = 75
   trancelabel.textBaseline = "alphabetic";
-  stage.addChild(trancelabel)
 
   noiselabel.x = 225
   noiselabel.y = 115
   noiselabel.textBaseline = "alphabetic";
-  stage.addChild(noiselabel)
 
   // metrics numbers
   tranceleveltext.x = 360
   tranceleveltext.y = 75
   tranceleveltext.textBaseline = "alphabetic";
-  stage.addChild(tranceleveltext)
 
   noiseleveltext.x = 360
   noiseleveltext.y = 115
   noiseleveltext.textBaseline = "alphabetic";
-  stage.addChild(noiseleveltext)
 
   // trance table!
   trancetable.graphics.beginFill("#bdf2e2").drawRect(0, 0, 250, 120)
   trancetable.x = 275
   trancetable.y = 250
-  stage.addChild(trancetable)
 
   // person on trance table!
 
-
-  // create a grey circle - wolf!
-  greycircle.graphics.beginFill('grey').drawCircle(0, 0, 40)
-  greycircle.x = canvas.width - 100
-  greycircle.y = canvas.height - 100
-  // stage.addChild(greycircle)
-
-  // wolf text
-  wolflabel.x = canvas.width - 120;
-  wolflabel.y = canvas.height - 100;
-  wolflabel.textBaseline = "alphabetic";
-  // stage.addChild(wolflabel)
-  // stage.setChildIndex(wolflabel, 4)
+  // wolf image
   var wolfBitmap = new createjs.Bitmap("res/wolf.png");
   wolfBitmap.x = canvas.width - 150
   wolfBitmap.y = canvas.height - 100
   wolfBitmap.scaleX = wolfBitmap.scaleY = .2
-  stage.addChild(wolfBitmap)
 
   var playerSpriteSheet = new createjs.SpriteSheet({
     images: ["res/player-spritemap-v9-redpants.png"],
@@ -191,13 +187,40 @@ function playGameScene() {
   var playerSprite = new createjs.Sprite(playerSpriteSheet)
   playerSprite.x = canvas.width / 2
   playerSprite.y = canvas.height - 100
-  stage.addChild(playerSprite)
 
+  // add elements to the container for this scene
+  gameContainer.addChild(outerwall, innerwall, dashboard_bg, dashboard_fg, trancelabel, noiselabel, tranceleveltext, noiseleveltext, trancetable, wolfBitmap, playerSprite)
+  gameContainer.setChildIndex(outerwall, 0)
+  gameContainer.setChildIndex(innerwall, 1)
+  stage.addChild(gameContainer)
+  
   // Update stage will render next frame
   stage.update()
   createjs.Ticker.addEventListener("tick", gameLoop)
   playerSprite.gotoAndPlay("run")
+
+  setTimeout(function () {
+    playYouWonScene()
+}, 4000);
 }
+
+
+
+// "you won" page function
+function playYouWonScene() {
+  canvas = <HTMLCanvasElement>stage.canvas
+  stage.removeAllChildren() 
+  // place some "you won!" text on the screen (declared at the top)
+  youWonText.x = 360
+  youWonText.y = 115
+  youWonText.textBaseline = "alphabetic";
+
+  stage.addChild(youWonText)
+
+  stage.update()
+}
+
+// "you lost" page function
 
 window.onload = () => {
   init()
