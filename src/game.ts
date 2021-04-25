@@ -15,40 +15,60 @@ var noiseleveltext = new createjs.Text("#", "20px Arial", "#bdbef2");
 var trancetable = new createjs.Shape();
 let greycircle = new createjs.Shape()
 var wolflabel = new createjs.Text("Wolf", "20px Arial", "#302a36");
-var windownoiselevel = 2
-var wolfnoiselevel = 3
-var tranceRate:number = 0.0005
+var tranceRate: number = 0.0005
 
+class Noise {
+  noiseLevel: number
+  durationMs: number
+  constructor(noiseLevel: number, durationMS: number) {
+    this.noiseLevel = noiseLevel
+    this.durationMs = durationMS
+  }
+}
+
+const Wolf = new Noise(3, 2000)
+const OutsideWindow = new Noise(2, 1000)
+
+class TimedNoise {
+  startTime: number
+  noise: Noise
+  constructor(n: Noise, startTime: number) {
+    this.startTime = startTime
+    this.noise = n
+  }
+  getActiveNoiseLevel(time: number): number {
+    if (this.startTime <= time && time < (this.startTime + this.noise.durationMs)) {
+      return this.noise.noiseLevel
+    }
+    return 0
+  }
+}
+
+var noises = [
+  new TimedNoise(OutsideWindow, 2000),
+  new TimedNoise(Wolf, 3000),
+  new TimedNoise(Wolf, 6000),
+  new TimedNoise(OutsideWindow, 7500)
+]
+
+var logIt = 0
 
 function gameLoop(event: Object) {
   noiseLevel = 0
   let time = createjs.Ticker.getTime();
-  console.log(time)
-  var deltaTime:number = time - lastTickTime
-  if (time < 1000) {
-    // tranceLevel = 0;
-  } else if (time < 2000) {
-    // tranceLevel = 1;
-  } else if (time < 3000) {
-    // tranceLevel = 2;
-    noiseLevel += windownoiselevel
-  } else if (time < 4000) {
-    // tranceLevel = 3;
-    noiseLevel += wolfnoiselevel
-  } else if (time < 5000) {
-    // tranceLevel = 3;
-    noiseLevel += wolfnoiselevel + windownoiselevel
-  } else if (time < 6000) {
-    // tranceLevel = 3;
-  } else if (time < 7000) {
-    // tranceLevel = 3;
-  }
+  var deltaTime: number = time - lastTickTime
 
+  updateNoiseLevel(time)
   updateTranceLevel(deltaTime)
 
   // end of variable updates, only displays below
+  var roundedTranceLevel = (Math.round(tranceLevel * 100) / 100)
+  if (logIt % 14 == 0) {
+    console.log("time: " + (time / 1000) + ", trance: " + roundedTranceLevel + ", noise: " + noiseLevel)
+  }
+  logIt++
 
-  tranceleveltext.text = (Math.round(tranceLevel*10)/10).toString();
+  tranceleveltext.text = roundedTranceLevel.toString();
   noiseleveltext.text = noiseLevel.toString();
 
   let e = <Event>(event);
@@ -56,7 +76,13 @@ function gameLoop(event: Object) {
   lastTickTime = time;
 }
 
-function updateTranceLevel(deltaTime:number) {
+function updateNoiseLevel(time: number) {
+  for (var n of noises) {
+    noiseLevel += n.getActiveNoiseLevel(time)
+  }
+}
+
+function updateTranceLevel(deltaTime: number) {
   // look at the noise level
   // if the noise level is < 3
   if (noiseLevel < 3) {
