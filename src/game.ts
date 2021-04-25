@@ -15,23 +15,54 @@ var noiseleveltext = new createjs.Text("#", "20px Arial", "#bdbef2");
 var trancetable = new createjs.Shape();
 let greycircle = new createjs.Shape()
 var wolflabel = new createjs.Text("Wolf", "20px Arial", "#302a36");
+var windownoiselevel = 2
+var wolfnoiselevel = 3
+var tranceRate:number = 0.0005
+
 
 function gameLoop(event: Object) {
+  noiseLevel = 0
   let time = createjs.Ticker.getTime();
   console.log(time)
-  if (time >= 1000 && time < 2000) {
-    tranceLevel = 1;
-  } else if (time >= 2000 && time < 3000) {
-    tranceLevel = 2;
-  } else if (time >= 3000) {
-    tranceLevel = 3;
+  var deltaTime:number = time - lastTickTime
+  if (time < 1000) {
+    // tranceLevel = 0;
+  } else if (time < 2000) {
+    // tranceLevel = 1;
+  } else if (time < 3000) {
+    // tranceLevel = 2;
+    noiseLevel += windownoiselevel
+  } else if (time < 4000) {
+    // tranceLevel = 3;
+    noiseLevel += wolfnoiselevel
+  } else if (time < 5000) {
+    // tranceLevel = 3;
+    noiseLevel += wolfnoiselevel + windownoiselevel
+  } else if (time < 6000) {
+    // tranceLevel = 3;
+  } else if (time < 7000) {
+    // tranceLevel = 3;
   }
-  tranceleveltext.text = tranceLevel.toString();
+
+  updateTranceLevel(deltaTime)
+
+  // end of variable updates, only displays below
+
+  tranceleveltext.text = (Math.round(tranceLevel*10)/10).toString();
   noiseleveltext.text = noiseLevel.toString();
 
   let e = <Event>(event);
   stage.update();
   lastTickTime = time;
+}
+
+function updateTranceLevel(deltaTime:number) {
+  // look at the noise level
+  // if the noise level is < 3
+  if (noiseLevel < 3) {
+    // increase the trance level by 0.5 every 1000 ms (1 s)
+    tranceLevel += tranceRate * deltaTime
+  }
 }
 
 function init() {
