@@ -1,3 +1,4 @@
+import { ProgressBar } from "./progressbar"
 import { loadSounds } from "./sound"
 let circle: createjs.Shape
 let stage: createjs.Stage
@@ -21,7 +22,7 @@ var trancetable = new createjs.Shape();
 let greycircle = new createjs.Shape()
 var wolflabel = new createjs.Text("Wolf", "20px Arial", "#302a36");
 var tranceRate: number = 0.0005
-var queue = new createjs.LoadQueue(true);
+var queue = new createjs.LoadQueue(false);
 
 class Noise {
   noiseLevel: number
@@ -68,12 +69,13 @@ var noises = [
 var logIt = 0
 
 function gameLoop(event: Object) {
-  noiseLevel = 0
   let time = createjs.Ticker.getTime();
+  let timeLeftover = time % 50;
+  time -= timeLeftover;
   var deltaTime: number = time - lastTickTime
 
-  updateNoiseLevel(time)
   updateTranceLevel(deltaTime)
+  updateNoiseLevel(time)
 
   // end of variable updates, only displays below
   var roundedTranceLevel = (Math.round(tranceLevel * 100) / 100)
@@ -84,6 +86,9 @@ function gameLoop(event: Object) {
 
   tranceleveltext.text = roundedTranceLevel.toString();
   noiseleveltext.text = noiseLevel.toString();
+  if (tranceLevel > 20) {
+    playYouWonScene()
+  }
 
   let e = <Event>(event);
   stage.update();
@@ -91,7 +96,9 @@ function gameLoop(event: Object) {
 }
 
 function updateNoiseLevel(time: number) {
+  noiseLevel = 0
   for (var n of noises) {
+    n.tick(time)
     noiseLevel += n.getActiveNoiseLevel(time)
   }
 }
@@ -106,7 +113,10 @@ function updateTranceLevel(deltaTime: number) {
 }
 
 function init() {
-  loadSounds(queue, startScenes)
+  stage = new createjs.Stage('demoCanvas')
+  canvas = <HTMLCanvasElement>stage.canvas
+  var progressBar = new ProgressBar(stage, true)
+  loadSounds(queue, startScenes, progressBar)
 }
 
 function startScenes() {
@@ -117,11 +127,9 @@ function startScenes() {
 // intro page function
 function playIntroScene() {
   // make the stage
-  stage = new createjs.Stage('demoCanvas')
-  canvas = <HTMLCanvasElement>stage.canvas
 
   // elements of the title page
-  var cabinBitmap = new createjs.Bitmap("res/introcabin.jpg");
+  var cabinBitmap = new createjs.Bitmap(queue.getResult("introcabin"))
   cabinBitmap.x = cabinBitmap.y = 0
   cabinBitmap.scaleX = cabinBitmap.scaleY = .45
   // introContainer.addChild(cabinBitmap)
@@ -132,15 +140,12 @@ function playIntroScene() {
     stage.update()
   }, 500);
 
-  // wait 3 seconds then start game
-  setTimeout(function () {
+  canvas.onclick = () => {
     playGameScene()
-  }, 3000);
+  }
 }
 
 function playGameScene() {
-  canvas = <HTMLCanvasElement>stage.canvas
-
   // create a background rectangle
   outerwall.graphics.beginFill("#4d1c20").drawRect(0, 0, canvas.width, canvas.height)
 
@@ -212,10 +217,6 @@ function playGameScene() {
   stage.update()
   createjs.Ticker.addEventListener("tick", gameLoop)
   playerSprite.gotoAndPlay("run")
-
-  setTimeout(function () {
-    playYouWonScene()
-  }, 4000);
 }
 
 
