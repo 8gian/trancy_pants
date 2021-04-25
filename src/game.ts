@@ -1,3 +1,4 @@
+import { loadSounds } from "./sound"
 let circle: createjs.Shape
 let stage: createjs.Stage
 let tranceLevel = 0
@@ -20,25 +21,34 @@ var trancetable = new createjs.Shape();
 let greycircle = new createjs.Shape()
 var wolflabel = new createjs.Text("Wolf", "20px Arial", "#302a36");
 var tranceRate: number = 0.0005
+var queue = new createjs.LoadQueue(true);
 
 class Noise {
   noiseLevel: number
   durationMs: number
-  constructor(noiseLevel: number, durationMS: number) {
+  sound: string
+  constructor(noiseLevel: number, durationMS: number, sound: string) {
     this.noiseLevel = noiseLevel
     this.durationMs = durationMS
+    this.sound = sound
   }
 }
 
-const Wolf = new Noise(3, 2000)
-const OutsideWindow = new Noise(2, 1000)
+const Wolf = new Noise(3, 2000, "wolf")
+const OutsideWindow = new Noise(2, 1000, "outside")
 
 class TimedNoise {
   startTime: number
   noise: Noise
+  soundInstance?: createjs.AbstractSoundInstance = undefined
   constructor(n: Noise, startTime: number) {
     this.startTime = startTime
     this.noise = n
+  }
+  tick(time: number) {
+    if (this.startTime <= time && !this.soundInstance) {
+      this.soundInstance = createjs.Sound.play(this.noise.sound)
+    }
   }
   getActiveNoiseLevel(time: number): number {
     if (this.startTime <= time && time < (this.startTime + this.noise.durationMs)) {
@@ -96,8 +106,12 @@ function updateTranceLevel(deltaTime: number) {
 }
 
 function init() {
-  playIntroScene();
-  // playGameScene();
+  loadSounds(queue, startScenes)
+}
+
+function startScenes() {
+  playIntroScene()
+  playGameScene()
 }
 
 // intro page function
@@ -105,7 +119,7 @@ function playIntroScene() {
   // make the stage
   stage = new createjs.Stage('demoCanvas')
   canvas = <HTMLCanvasElement>stage.canvas
-  
+
   // elements of the title page
   var cabinBitmap = new createjs.Bitmap("res/introcabin.jpg");
   cabinBitmap.x = cabinBitmap.y = 0
@@ -116,12 +130,12 @@ function playIntroScene() {
   //  wait a half second for the cabin image to load before updating the stage
   setTimeout(function () {
     stage.update()
-}, 500);
+  }, 500);
 
   // wait 3 seconds then start game
   setTimeout(function () {
     playGameScene()
-}, 3000);
+  }, 3000);
 }
 
 function playGameScene() {
@@ -193,7 +207,7 @@ function playGameScene() {
   gameContainer.setChildIndex(outerwall, 0)
   gameContainer.setChildIndex(innerwall, 1)
   stage.addChild(gameContainer)
-  
+
   // Update stage will render next frame
   stage.update()
   createjs.Ticker.addEventListener("tick", gameLoop)
@@ -201,7 +215,7 @@ function playGameScene() {
 
   setTimeout(function () {
     playYouWonScene()
-}, 4000);
+  }, 4000);
 }
 
 
@@ -209,7 +223,7 @@ function playGameScene() {
 // "you won" page function
 function playYouWonScene() {
   canvas = <HTMLCanvasElement>stage.canvas
-  stage.removeAllChildren() 
+  stage.removeAllChildren()
   // place some "you won!" text on the screen (declared at the top)
   youWonText.x = 360
   youWonText.y = 115
