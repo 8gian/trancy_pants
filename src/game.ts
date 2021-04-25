@@ -86,7 +86,7 @@ function gameLoop(event: Object) {
 
   tranceleveltext.text = roundedTranceLevel.toString();
   noiseleveltext.text = noiseLevel.toString();
-  if (tranceLevel > 20) {
+  if (tranceLevel >= 5) {
     playYouWonScene()
   }
 
@@ -121,7 +121,6 @@ function init() {
 
 function startScenes() {
   playIntroScene()
-  playGameScene()
 }
 
 // intro page function
