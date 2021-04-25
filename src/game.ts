@@ -1,6 +1,7 @@
 let circle: createjs.Shape
 let stage: createjs.Stage
 let tranceLevel = 0
+let noiseLevel = 0
 let lastTickTime = 0
 let canvas: HTMLCanvasElement
 var outerwall = new createjs.Shape();
@@ -17,6 +18,7 @@ var wolflabel = new createjs.Text("Wolf", "20px Arial", "#302a36");
 
 function gameLoop(event: Object) {
   let time = createjs.Ticker.getTime();
+  console.log(time)
   if (time >= 1000 && time < 2000) {
     tranceLevel = 1;
   } else if (time >= 2000 && time < 3000) {
@@ -25,6 +27,7 @@ function gameLoop(event: Object) {
     tranceLevel = 3;
   }
   tranceleveltext.text = tranceLevel.toString();
+  noiseleveltext.text = noiseLevel.toString();
 
   let e = <Event>(event);
   stage.update();
