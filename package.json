@@ -12,7 +12,7 @@
         "trailingComma": "es5"
     },
     "devDependencies": {
-        "@types/createjs": "0.0.29",
+        "@types/createjs": "^0.0.29",
         "@types/easeljs": "^1.0.0",
         "awesome-typescript-loader": "^5.2.1",
         "createjs": "^1.0.1",
@@ -22,5 +22,8 @@
         "webpack": "^4.42.1",
         "webpack-cli": "^3.3.11",
         "webpack-dev-server": "^3.10.3"
+    },
+    "dependencies": {
+        "createjs-module": "^0.8.3"
     }
 }
