@@ -163,18 +163,40 @@ function playGameScene() {
   greycircle.graphics.beginFill('grey').drawCircle(0, 0, 40)
   greycircle.x = canvas.width - 100
   greycircle.y = canvas.height - 100
-  stage.addChild(greycircle)
+  // stage.addChild(greycircle)
 
   // wolf text
   wolflabel.x = canvas.width - 120;
   wolflabel.y = canvas.height - 100;
   wolflabel.textBaseline = "alphabetic";
-  stage.addChild(wolflabel)
+  // stage.addChild(wolflabel)
   // stage.setChildIndex(wolflabel, 4)
+  var wolfBitmap = new createjs.Bitmap("res/wolf.png");
+  wolfBitmap.x = canvas.width - 150
+  wolfBitmap.y = canvas.height - 100
+  wolfBitmap.scaleX = wolfBitmap.scaleY = .2
+  stage.addChild(wolfBitmap)
+
+  var playerSpriteSheet = new createjs.SpriteSheet({
+    images: ["res/player-spritemap-v9-redpants.png"],
+    frames: {
+      width: 46,
+      height: 50,
+      count: 40
+    },
+    animations: {
+      run: [24, 31, "run", 1 / 5]
+    }
+  })
+  var playerSprite = new createjs.Sprite(playerSpriteSheet)
+  playerSprite.x = canvas.width / 2
+  playerSprite.y = canvas.height - 100
+  stage.addChild(playerSprite)
 
   // Update stage will render next frame
   stage.update()
   createjs.Ticker.addEventListener("tick", gameLoop)
+  playerSprite.gotoAndPlay("run")
 }
 
 window.onload = () => {
