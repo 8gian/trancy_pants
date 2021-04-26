@@ -37,6 +37,7 @@ class Noise {
 
 const Wolf = new Noise(3, 2000, "wolf")
 const OutsideWindow = new Noise(2, 1000, "outside")
+const Walking = new Noise(1, 1000, "walking")
 
 class TimedNoise {
   startTime: number
@@ -59,12 +60,30 @@ class TimedNoise {
   }
 }
 
+class PlayerNoise {
+  noise: Noise
+  soundInstance?: createjs.AbstractSoundInstance = undefined
+  active: boolean = false
+  constructor(n: Noise) {
+    this.noise = n
+  }
+  getActiveNoiseLevel(time: number): number {
+    if (this.active) {
+      return this.noise.noiseLevel
+    }
+    return 0
+  }
+
+}
+
 var noises = [
   new TimedNoise(OutsideWindow, 2000),
   new TimedNoise(Wolf, 3000),
   new TimedNoise(Wolf, 6000),
-  new TimedNoise(OutsideWindow, 7500)
+  new TimedNoise(OutsideWindow, 7000),
 ]
+
+var walkingNoise = new PlayerNoise(Walking)
 
 var logIt = 0
 
@@ -80,7 +99,7 @@ function gameLoop(event: Object) {
   // end of variable updates, only displays below
   var roundedTranceLevel = (Math.round(tranceLevel * 100) / 100)
   if (logIt % 14 == 0) {
-    console.log("time: " + (time / 1000) + ", trance: " + roundedTranceLevel + ", noise: " + noiseLevel)
+    // console.log("time: " + (time / 1000) + ", trance: " + roundedTranceLevel + ", noise: " + noiseLevel)
   }
   logIt++
 
@@ -101,6 +120,7 @@ function updateNoiseLevel(time: number) {
     n.tick(time)
     noiseLevel += n.getActiveNoiseLevel(time)
   }
+  noiseLevel += walkingNoise.getActiveNoiseLevel(time)
 }
 
 function updateTranceLevel(deltaTime: number) {
@@ -115,6 +135,8 @@ function updateTranceLevel(deltaTime: number) {
 function init() {
   stage = new createjs.Stage('demoCanvas')
   canvas = <HTMLCanvasElement>stage.canvas
+  document.addEventListener("keydown", handleKeyEvent)
+  document.addEventListener("keyup", handleKeyEvent)
   var progressBar = new ProgressBar(stage, true)
   loadSounds(queue, startScenes, progressBar)
 }
@@ -142,6 +164,16 @@ function playIntroScene() {
   canvas.onclick = () => {
     playGameScene()
   }
+}
+
+function handleKeyEvent(event: Object) {
+  let keyEvent = <KeyboardEvent>event;
+  if (keyEvent.type == "keydown" && keyEvent.key == "ArrowRight") {
+    walkingNoise.active = true
+  } else if (keyEvent.type == "keyup" && keyEvent.key == "ArrowRight") {
+    walkingNoise.active = false
+  }
+  console.log("walking active: " + walkingNoise.active)
 }
 
 function playGameScene() {
