@@ -271,9 +271,9 @@ function handleKeyEvent(event: Object) {
 function playGameScene() {
   walkingNoise = new PlayerNoise(Walking)
   TvNoise = new PlayerNoise(Tv)
-  setTimeout(function () {
-    TvNoise.active = true
-  }, 1000)
+  // setTimeout(function () {
+  //   TvNoise.active = true
+  // }, 1000)
 
   // create a background rectangle
   outerwall.graphics.beginFill("#4d1c20").drawRect(0, 0, canvas.width, canvas.height)
@@ -290,6 +290,7 @@ function playGameScene() {
   dashboard_fg.x = 210
   dashboard_fg.y = 40
 
+  
   // metrics text labels
   trancelabel.x = 225
   trancelabel.y = 75
@@ -321,6 +322,18 @@ function playGameScene() {
   wolfBitmap.y = canvas.height - 100
   wolfBitmap.scaleX = wolfBitmap.scaleY = .2
 
+  // tv
+  var tvBitmap = new createjs.Bitmap("res/tvimage.png");
+  tvBitmap.x = 40
+  tvBitmap.y = 140
+  tvBitmap.scaleX = tvBitmap.scaleY = 1.5
+
+  // chair
+  var chairBitmap = new createjs.Bitmap("res/chair.png");
+  chairBitmap.x = 100
+  chairBitmap.y = 170
+  chairBitmap.scaleX = chairBitmap.scaleY = .35
+
   var playerSpriteSheet = new createjs.SpriteSheet({
     images: ["res/player-spritemap-v9-redpants.png"],
     frames: {
@@ -336,7 +349,7 @@ function playGameScene() {
   player = new Player(playerSprite, canvas.width / 2, canvas.height - 100, 46, 50)
 
   // add elements to the container for this scene
-  gameContainer.addChild(outerwall, innerwall, dashboard_bg, dashboard_fg, trancelabel, noiselabel, tranceleveltext, noiseleveltext, trancetable, wolfBitmap, playerSprite)
+  gameContainer.addChild(outerwall, innerwall, dashboard_bg, dashboard_fg, trancelabel, noiselabel, tranceleveltext, noiseleveltext, trancetable, wolfBitmap, tvBitmap, chairBitmap,  playerSprite)
   gameContainer.setChildIndex(outerwall, 0)
   gameContainer.setChildIndex(innerwall, 1)
   stage.addChild(gameContainer)
