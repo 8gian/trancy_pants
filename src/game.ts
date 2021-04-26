@@ -321,8 +321,10 @@ function updateNoiseLevel(time: number) {
   noiseLevel += walkingNoise.getActiveNoiseLevel(time) + TvNoise.getActiveNoiseLevel(time) + wolfNoise.getActiveNoiseLevel(time)
   if (noiseLevel > lastNoiseLevel) {
     if (noiseLevel >= 5) {
-      tranceLevel -= (noiseLevel - 5)
-      tranceLevel = Math.floor(tranceLevel)
+      if (tranceLevel < 10) {
+        tranceLevel -= (noiseLevel - 5)
+        tranceLevel = Math.floor(tranceLevel)
+      }
     }
   }
   lastNoiseLevel = noiseLevel
