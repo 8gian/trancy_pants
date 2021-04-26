@@ -9,13 +9,19 @@ let noiseLevel = 0
 let lastNoiseLevel = 0
 let lastTickTime = 0
 let canvas: HTMLCanvasElement
-// var introContainer = new createjs.Container()
 var gameContainer = new createjs.Container()
-// var youWonContainer = new createjs.Container()
 var outerwall = new createjs.Shape();
 var innerwall = new createjs.Shape();
 var dashboard_bg = new createjs.Shape();
 var dashboard_fg = new createjs.Shape();
+var titleText1 = new createjs.Text("You are the famous Dr. Trancy Pants, M.D.", "30px Arial", "#fffdfa")
+var titleText2 = new createjs.Text("With your help, budding magicians can advance\ntheir studies by entering a deep trance.", "30px Arial", "#fffdfa")
+var titleText3 = new createjs.Text("Keep your cabin quiet. If it gets too loud you'll\nwake the magician.", "30px Arial", "#fffdfa")
+var titleText4 = new createjs.Text("Don't forget to wake them up at the end,\nor they'll sleep forever.", "30px Arial", "#fffdfa")
+var titleText5 = new createjs.Text("Click to begin!", "30px Arial", "#fffdfa");
+var tt1bg = new createjs.Shape();
+var tt4bg = new createjs.Shape();
+var tt5bg = new createjs.Shape();
 var trancelabel = new createjs.Text("Trance level:", "20px Arial", "#bdbef2");
 var noiselabel = new createjs.Text("Noise level:", "20px Arial", "#bdbef2");
 var youWonText = new createjs.Text("You won!", "20px Arial", "#bdbef2");
@@ -23,8 +29,6 @@ var youLostText = new createjs.Text("You lost!", "20px Arial", "#bdbef2");
 var tranceleveltext = new createjs.Text("#", "20px Arial", "#bdbef2");
 var noiseleveltext = new createjs.Text("#", "20px Arial", "#bdbef2");
 var trancetable = new createjs.Shape();
-let greycircle = new createjs.Shape()
-var wolflabel = new createjs.Text("Wolf", "20px Arial", "#302a36");
 var tranceRate: number = 0.0003
 var walkSpeed: number = 40 / 1000
 var queue = new createjs.LoadQueue(false);
@@ -360,18 +364,77 @@ function playIntroScene() {
   var cabinBitmap = new createjs.Bitmap(queue.getResult("introcabin"))
   cabinBitmap.x = cabinBitmap.y = 0
   cabinBitmap.scaleX = cabinBitmap.scaleY = .45
-  // introContainer.addChild(cabinBitmap)
-
   stage.addChild(cabinBitmap)
+
+
+  tt1bg.graphics.beginFill("#406e20").drawRoundRectComplex(0, 0, 660, 230, 10, 10, 10, 10)
+  tt1bg.x = 95
+  tt1bg.y = 60
+
+  tt4bg.graphics.beginFill("#406e20").drawRoundRectComplex(0, 0, 560, 95, 10, 10, 10, 10)
+  tt4bg.x = 195
+  tt4bg.y = 360
+
+  tt5bg.graphics.beginFill("#69b535").drawRoundRectComplex(0, 0, 240, 75, 10, 10, 10, 10)
+  tt5bg.x = 515
+  tt5bg.y = 485
+
+  // intro game text (text declared at the top)
+  titleText1.x = 110
+  titleText1.y = 100
+  titleText1.textBaseline = "alphabetic";
+
+  titleText2.x = 110
+  titleText2.y = 150
+  titleText2.textBaseline = "alphabetic";
+
+  titleText3.x = 110
+  titleText3.y = 230
+  titleText3.textBaseline = "alphabetic";
+
+  titleText4.x = 210
+  titleText4.y = 400
+  titleText4.textBaseline = "alphabetic";
+
+  titleText5.x = 540
+  titleText5.y = 530
+  titleText5.textBaseline = "alphabetic";
+
   //  wait a half second for the cabin image to load before updating the stage
   setTimeout(function () {
     stage.update()
   }, 500);
 
-  canvas.onclick = () => {
-    canvas.onclick = null
-    playGameScene()
-  }
+  setTimeout(function () {
+    stage.addChild(tt1bg, titleText1)
+    stage.update()
+  }, 1000)
+
+  setTimeout(function () {
+    stage.addChild(titleText2)
+    stage.update()
+  }, 2500)
+
+  setTimeout(function () {
+    stage.addChild(titleText3)
+    stage.update()
+  }, 4000)
+
+  setTimeout(function () {
+    stage.addChild(tt4bg, titleText4)
+    stage.update()
+  }, 6500)
+
+  setTimeout(function () {
+    stage.addChild(tt5bg, titleText5)
+    stage.update()
+
+    canvas.onclick = () => {
+      canvas.onclick = null
+      playGameScene()
+    }
+  }, 7500)
+  
 }
 
 function handleKeyEvent(event: Object) {
