@@ -2,6 +2,8 @@ import { ProgressBar } from "./progressbar"
 import { loadSounds } from "./sound"
 let circle: createjs.Shape
 let stage: createjs.Stage
+let TvNoise: PlayerNoise
+let walkingNoise: PlayerNoise
 let tranceLevel = 0
 let noiseLevel = 0
 let lastTickTime = 0
@@ -38,6 +40,7 @@ class Noise {
 const Wolf = new Noise(3, 2000, "wolf")
 const OutsideWindow = new Noise(2, 1000, "outside")
 const Walking = new Noise(1, 1000, "walking")
+const Tv = new Noise(5, 0, "tvnoise")
 
 class TimedNoise {
   startTime: number
@@ -62,19 +65,24 @@ class TimedNoise {
 
 class PlayerNoise {
   noise: Noise
-  soundInstance?: createjs.AbstractSoundInstance = undefined
+  soundInstance: createjs.AbstractSoundInstance
   active: boolean = false
   constructor(n: Noise) {
     this.noise = n
+    this.soundInstance = createjs.Sound.play(this.noise.sound, {loop: -1, volume: 0})
   }
   getActiveNoiseLevel(time: number): number {
     if (this.active) {
+      this.soundInstance.volume = 1
       return this.noise.noiseLevel
+    } else {
+      this.soundInstance.volume = 0
     }
     return 0
   }
 
 }
+
 
 var noises = [
   new TimedNoise(OutsideWindow, 2000),
@@ -83,7 +91,6 @@ var noises = [
   new TimedNoise(OutsideWindow, 7000),
 ]
 
-var walkingNoise = new PlayerNoise(Walking)
 
 var logIt = 0
 
@@ -120,7 +127,7 @@ function updateNoiseLevel(time: number) {
     n.tick(time)
     noiseLevel += n.getActiveNoiseLevel(time)
   }
-  noiseLevel += walkingNoise.getActiveNoiseLevel(time)
+  noiseLevel += walkingNoise.getActiveNoiseLevel(time) + TvNoise.getActiveNoiseLevel(time)
 }
 
 function updateTranceLevel(deltaTime: number) {
@@ -177,6 +184,12 @@ function handleKeyEvent(event: Object) {
 }
 
 function playGameScene() {
+  walkingNoise = new PlayerNoise(Walking)
+  TvNoise = new PlayerNoise(Tv)
+  setTimeout( function() {
+    TvNoise.active = true
+  }, 1000)
+
   // create a background rectangle
   outerwall.graphics.beginFill("#4d1c20").drawRect(0, 0, canvas.width, canvas.height)
 
