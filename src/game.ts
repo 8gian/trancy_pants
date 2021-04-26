@@ -25,10 +25,29 @@ var noiseleveltext = new createjs.Text("#", "20px Arial", "#bdbef2");
 var trancetable = new createjs.Shape();
 let greycircle = new createjs.Shape()
 var wolflabel = new createjs.Text("Wolf", "20px Arial", "#302a36");
-var tranceRate: number = 0.0005
-var walkSpeed: number = 20 / 1000
+var tranceRate: number = 0.0003
+var walkSpeed: number = 40 / 1000
 var queue = new createjs.LoadQueue(false);
 var player: Player
+var wolfBitmap: createjs.Bitmap
+var chairBitmap: createjs.Bitmap
+var tvBitmap: createjs.Bitmap
+
+function getObjectBounds() {
+  return [chairBitmap.getTransformedBounds(), trancetable.getTransformedBounds(), dashboard_bg.getTransformedBounds()]
+}
+function cropBounds(bounds: createjs.Rectangle, horiz: number, vert: number) {
+  return new createjs.Rectangle(bounds.x + horiz, bounds.y + vert, bounds.width - 2 * horiz, bounds.height - 2 * vert)
+}
+
+function boundsCollide(obj1: createjs.Rectangle, obj2: createjs.Rectangle): boolean {
+  if (obj1.x + obj1.width > obj2.x && obj1.x < obj2.x + obj2.width) {
+    if (obj1.y + obj2.height > obj2.y && obj1.y < obj2.y + obj2.height) {
+      return true
+    }
+  }
+  return false
+}
 
 class Noise {
   noiseLevel: number
@@ -44,7 +63,7 @@ class Noise {
 const Wolf = new Noise(3, 2000, "wolf")
 const OutsideWindow = new Noise(2, 1000, "outside")
 const Walking = new Noise(1, 1000, "walking")
-const Tv = new Noise(5, 0, "tvnoise")
+const Tv = new Noise(3, 0, "tvnoise")
 
 class TimedNoise {
   startTime: number
@@ -72,7 +91,7 @@ class WolfNoise {
   noise: Noise
   distressLevel: number = 0
   startDistressLevel: number = 0
-  maxDistressLevel: number = 4
+  maxDistressLevel: number = 3
   active: boolean = false
   repeatAfter: number
   initialStartTime: number
@@ -155,6 +174,9 @@ class Player {
   walkingUp: boolean = false;
   walkingDown: boolean = false;
   moving: boolean = false
+  onWolf: boolean = false
+  onTv: boolean = false
+  timeOnTv: number = 0
 
   constructor(sprite: createjs.Sprite, startX: number, startY: number, width: number, height: number) {
     this.sprite = sprite
@@ -165,29 +187,38 @@ class Player {
     this.sprite.x = this.x
     this.sprite.x = this.y
   }
+  getBounds(): createjs.Rectangle {
+    return cropBounds(new createjs.Rectangle(this.x, this.y, this.width, this.height), 15, 10)
+  }
 
   update(time: number) {
+    let lastX = this.x
+    let lastY = this.y
+    let horiz = 0
+    let vert = 0
     if (this.walkingLeft) {
-      this.x -= walkSpeed * (time - lastTickTime)
-    }
-    if (this.walkingDown) {
-      this.y += walkSpeed * (time - lastTickTime)
+      horiz -= 1
     }
     if (this.walkingRight) {
-      this.x += walkSpeed * (time - lastTickTime)
+      horiz += 1
+    }
+    if (this.walkingDown) {
+      vert += 1
     }
     if (this.walkingUp) {
-      this.y -= walkSpeed * (time - lastTickTime)
+      vert -= 1
     }
-    if (this.sprite.x == this.x && this.sprite.y == this.y) {
-      this.sprite.gotoAndStop(0)
-      this.moving = false
+    if (Math.abs(vert) > 0 || Math.abs(horiz) > 0) {
+      this.moving = true
+      this.sprite.gotoAndPlay("run")
     } else {
-      if (!this.moving) {
-        this.moving = true
-        this.sprite.gotoAndPlay("run")
-      }
+      this.moving = false
+      this.sprite.gotoAndStop(0)
     }
+    let speed = this.moving ? (1 / Math.sqrt(Math.pow(horiz, 2) + Math.pow(vert, 2))) * walkSpeed : 0
+    this.x += horiz * speed * (time - lastTickTime)
+    this.y += vert * speed * (time - lastTickTime)
+
     if (this.moving) {
       walkingNoise.active = true
     } else {
@@ -195,12 +226,57 @@ class Player {
     }
     this.x = Math.max(0, Math.min(this.x, canvas.width - 15 - this.width))
     this.y = Math.max(0, Math.min(this.y, canvas.height - 15 - this.height))
+    if (this.ejectSpriteFromObjects()) {
+      this.x = lastX
+      this.y = lastY
+    }
+
     this.sprite.x = this.x
     this.sprite.y = this.y
+    if (this.onTv) {
+      this.timeOnTv += time - lastTickTime
+    } else {
+      this.timeOnTv = 0
+    }
+    this.performInteractions()
+    if (this.onTv && this.timeOnTv > 3000) {
+      wolfNoise.active = true
+    }
+  }
+  ejectSpriteFromObjects(): boolean {
+    const bounds = this.getBounds()
+    const objects = getObjectBounds()
+    for (var i in objects) {
+      if (boundsCollide(bounds, objects[i])) {
+        if (i == "0") {
+          console.log("hit chair")
+        } else if (i == "1") {
+          console.log("hit table")
+        } else if (i == "2") {
+          console.log("hit dashboard")
+        }
+        console.log("bounds " + objects[i])
+        return true
+      }
+    }
+    return false
+  }
+  performInteractions() {
+    var newOnWolf = boundsCollide(this.getBounds(), wolfBitmap.getTransformedBounds())
+    var newOnTv = boundsCollide(this.getBounds(), tvBitmap.getTransformedBounds())
+    if (newOnTv && !this.onTv) {
+      TvNoise.active = !TvNoise.active
+    }
+    if (newOnWolf && this.onWolf) {
+      wolfNoise.active = false
+      setTimeout(() => { TvNoise.active = true }, 4000)
+    }
+    this.onWolf = newOnWolf
+    this.onTv = newOnTv
   }
 }
 
-let wolfNoise = new WolfNoise(Wolf, 2000, 3000)
+let wolfNoise = new WolfNoise(Wolf, 2000, 4000)
 var logIt = 0
 
 function gameLoop(event: Object) {
@@ -209,9 +285,23 @@ function gameLoop(event: Object) {
   // time -= timeLeftover;
   var deltaTime: number = time - lastTickTime
 
-  updateTranceLevel(deltaTime)
+  if (tranceLevel < 10) {
+    updateTranceLevel(deltaTime)
+  }
   player.update(time)
   updateNoiseLevel(time)
+
+  if (tranceLevel >= 10) {
+    tranceLevel = 10
+    if (noiseLevel >= 10) {
+      playYouWonScene()
+    }
+  } else if (noiseLevel >= 10) {
+    playYouLostScene()
+  }
+  if (tranceLevel < 0) {
+    playYouLostScene()
+  }
 
   // end of variable updates, only displays below
   var roundedTranceLevel = (Math.round(tranceLevel * 100) / 100)
@@ -219,17 +309,8 @@ function gameLoop(event: Object) {
     // console.log("time: " + (time / 1000) + ", trance: " + roundedTranceLevel + ", noise: " + noiseLevel)
   }
   logIt++
-
   tranceleveltext.text = roundedTranceLevel.toString();
   noiseleveltext.text = noiseLevel.toString();
-  if (tranceLevel >= 15) {
-    playYouWonScene()
-  }
-  if (tranceLevel < 0) {
-    playYouLostScene()
-  }
-
-  let e = <Event>(event);
   stage.update();
   lastTickTime = time;
 }
@@ -286,6 +367,7 @@ function playIntroScene() {
   }, 500);
 
   canvas.onclick = () => {
+    canvas.onclick = null
     playGameScene()
   }
 }
@@ -308,7 +390,7 @@ function handleKeyEvent(event: Object) {
           player.walkingUp = true
           break
       }
-    } else {
+    } else if (keyEvent.type == "keyup") {
       switch (keyEvent.key) {
         case "ArrowRight":
           player.walkingRight = false
@@ -344,6 +426,7 @@ function playGameScene() {
   dashboard_bg.graphics.beginFill("#141670").drawRoundRectComplex(0, 0, 400, 120, 5, 5, 5, 5)
   dashboard_bg.x = 200
   dashboard_bg.y = 30
+  dashboard_bg.setBounds(0, 0, 400, 120)
 
   dashboard_fg.graphics.beginFill("#393cdb").drawRoundRectComplex(0, 0, 380, 100, 5, 5, 5, 5)
   dashboard_fg.x = 210
@@ -372,30 +455,31 @@ function playGameScene() {
   trancetable.graphics.beginFill("#bdf2e2").drawRect(0, 0, 250, 120)
   trancetable.x = 275
   trancetable.y = 250
+  trancetable.setBounds(0, 0, 250, 120)
 
   // person on trance table!
 
   // wolf image
-  var wolfBitmap = new createjs.Bitmap("res/wolf.png");
+  wolfBitmap = new createjs.Bitmap(queue.getResult("wolfimage"));
   wolfBitmap.x = canvas.width - 150
   wolfBitmap.y = canvas.height - 100
   wolfBitmap.scaleX = wolfBitmap.scaleY = .2
   wolfNoise.active = true
 
   // tv
-  var tvBitmap = new createjs.Bitmap("res/tvimage.png");
+  tvBitmap = new createjs.Bitmap(queue.getResult("tvimage"));
   tvBitmap.x = 40
   tvBitmap.y = 140
   tvBitmap.scaleX = tvBitmap.scaleY = 1.5
 
   // chair
-  var chairBitmap = new createjs.Bitmap("res/chair.png");
+  chairBitmap = new createjs.Bitmap(queue.getResult("chairimage"));
   chairBitmap.x = 100
   chairBitmap.y = 170
   chairBitmap.scaleX = chairBitmap.scaleY = .35
 
   var playerSpriteSheet = new createjs.SpriteSheet({
-    images: ["res/player-spritemap-v9-redpants.png"],
+    images: [queue.getResult("spritesheetimage")],
     frames: {
       width: 46,
       height: 50,
