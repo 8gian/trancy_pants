@@ -368,7 +368,7 @@ function init() {
 }
 
 function startScenes() {
-  playGameScene()
+  playIntroScene()
 }
 
 // intro page function
@@ -615,7 +615,7 @@ function playYouWonScene() {
   stage.update()
   canvas.onclick = () => {
     canvas.onclick = null
-    startScenes()
+    playGameScene()
   }
 }
 
