@@ -24,7 +24,9 @@ var trancetable = new createjs.Shape();
 let greycircle = new createjs.Shape()
 var wolflabel = new createjs.Text("Wolf", "20px Arial", "#302a36");
 var tranceRate: number = 0.0005
+var walkSpeed: number = 15 / 1000
 var queue = new createjs.LoadQueue(false);
+var player: Player
 
 class Noise {
   noiseLevel: number
@@ -69,7 +71,7 @@ class PlayerNoise {
   active: boolean = false
   constructor(n: Noise) {
     this.noise = n
-    this.soundInstance = createjs.Sound.play(this.noise.sound, {loop: -1, volume: 0})
+    this.soundInstance = createjs.Sound.play(this.noise.sound, { loop: -1, volume: 0 })
   }
   getActiveNoiseLevel(time: number): number {
     if (this.active) {
@@ -83,6 +85,61 @@ class PlayerNoise {
 
 }
 
+class Player {
+  sprite: createjs.Sprite
+  x: number
+  y: number
+  width: number
+  height: number
+  walkingLeft: boolean = false;
+  walkingRight: boolean = false;
+  walkingUp: boolean = false;
+  walkingDown: boolean = false;
+  moving: boolean = false
+
+  constructor(sprite: createjs.Sprite, startX: number, startY: number, width: number, height: number) {
+    this.sprite = sprite
+    this.x = startX
+    this.y = startY
+    this.width = width
+    this.height = height
+    this.sprite.x = this.x
+    this.sprite.x = this.y
+  }
+
+  update(time: number) {
+    if (this.walkingLeft) {
+      this.x -= walkSpeed * (time - lastTickTime)
+    }
+    if (this.walkingDown) {
+      this.y += walkSpeed * (time - lastTickTime)
+    }
+    if (this.walkingRight) {
+      this.x += walkSpeed * (time - lastTickTime)
+    }
+    if (this.walkingUp) {
+      this.y -= walkSpeed * (time - lastTickTime)
+    }
+    if (this.sprite.x == this.x && this.sprite.y == this.y) {
+      this.sprite.gotoAndStop(0)
+      this.moving = false
+    } else {
+      if (!this.moving) {
+        this.moving = true
+        this.sprite.gotoAndPlay("run")
+      }
+    }
+    if (this.moving) {
+      walkingNoise.active = true
+    } else {
+      walkingNoise.active = false
+    }
+    this.x = Math.max(0, Math.min(this.x, canvas.width - 15 - this.width))
+    this.y = Math.max(0, Math.min(this.y, canvas.height - 15 - this.height))
+    this.sprite.x = this.x
+    this.sprite.y = this.y
+  }
+}
 
 var noises = [
   new TimedNoise(OutsideWindow, 2000),
@@ -96,11 +153,12 @@ var logIt = 0
 
 function gameLoop(event: Object) {
   let time = createjs.Ticker.getTime();
-  let timeLeftover = time % 50;
-  time -= timeLeftover;
+  // let timeLeftover = time % 50;
+  // time -= timeLeftover;
   var deltaTime: number = time - lastTickTime
 
   updateTranceLevel(deltaTime)
+  player.update(time)
   updateNoiseLevel(time)
 
   // end of variable updates, only displays below
@@ -175,18 +233,45 @@ function playIntroScene() {
 
 function handleKeyEvent(event: Object) {
   let keyEvent = <KeyboardEvent>event;
-  if (keyEvent.type == "keydown" && keyEvent.key == "ArrowRight") {
-    walkingNoise.active = true
-  } else if (keyEvent.type == "keyup" && keyEvent.key == "ArrowRight") {
-    walkingNoise.active = false
+  if (player) {
+    if (keyEvent.type == "keydown") {
+      switch (keyEvent.key) {
+        case "ArrowRight":
+          player.walkingRight = true
+          break
+        case "ArrowLeft":
+          player.walkingLeft = true
+          break
+        case "ArrowDown":
+          player.walkingDown = true
+          break
+        case "ArrowUp":
+          player.walkingUp = true
+          break
+      }
+    } else {
+      switch (keyEvent.key) {
+        case "ArrowRight":
+          player.walkingRight = false
+          break
+        case "ArrowLeft":
+          player.walkingLeft = false
+          break
+        case "ArrowDown":
+          player.walkingDown = false
+          break
+        case "ArrowUp":
+          player.walkingUp = false
+          break
+      }
+    }
   }
-  console.log("walking active: " + walkingNoise.active)
 }
 
 function playGameScene() {
   walkingNoise = new PlayerNoise(Walking)
   TvNoise = new PlayerNoise(Tv)
-  setTimeout( function() {
+  setTimeout(function () {
     TvNoise.active = true
   }, 1000)
 
@@ -248,8 +333,7 @@ function playGameScene() {
     }
   })
   var playerSprite = new createjs.Sprite(playerSpriteSheet)
-  playerSprite.x = canvas.width / 2
-  playerSprite.y = canvas.height - 100
+  player = new Player(playerSprite, canvas.width / 2, canvas.height - 100, 46, 50)
 
   // add elements to the container for this scene
   gameContainer.addChild(outerwall, innerwall, dashboard_bg, dashboard_fg, trancelabel, noiselabel, tranceleveltext, noiseleveltext, trancetable, wolfBitmap, playerSprite)
