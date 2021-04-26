@@ -26,6 +26,7 @@ var trancelabel = new createjs.Text("Trance level:", "20px Arial", "#bdbef2");
 var noiselabel = new createjs.Text("Noise level:", "20px Arial", "#bdbef2");
 var youWonText = new createjs.Text("You won!", "20px Arial", "#bdbef2");
 var youLostText = new createjs.Text("You lost!", "20px Arial", "#bdbef2");
+var playAgainText = new createjs.Text("Click to play again", "20px Arial", "#bdbef2");
 var tranceleveltext = new createjs.Text("#", "20px Arial", "#bdbef2");
 var noiseleveltext = new createjs.Text("#", "20px Arial", "#bdbef2");
 var trancetable = new createjs.Shape();
@@ -36,6 +37,7 @@ var player: Player
 var wolfBitmap: createjs.Bitmap
 var chairBitmap: createjs.Bitmap
 var tvBitmap: createjs.Bitmap
+let backgroundMusic: createjs.AbstractSoundInstance
 
 function getObjectBounds() {
   return [chairBitmap.getTransformedBounds(), trancetable.getTransformedBounds(), dashboard_bg.getTransformedBounds()]
@@ -266,12 +268,13 @@ class Player {
     return false
   }
   performInteractions() {
-    var newOnWolf = boundsCollide(this.getBounds(), wolfBitmap.getTransformedBounds())
+    var newOnWolf = boundsCollide(this.getBounds(), cropBounds(wolfBitmap.getTransformedBounds(), 15, 11))
     var newOnTv = boundsCollide(this.getBounds(), tvBitmap.getTransformedBounds())
     if (newOnTv && !this.onTv) {
       TvNoise.active = !TvNoise.active
     }
     if (newOnWolf && this.onWolf) {
+      console.log("hit wolf")
       wolfNoise.active = false
       setTimeout(() => { TvNoise.active = true }, 4000)
     }
@@ -282,6 +285,14 @@ class Player {
 
 let wolfNoise = new WolfNoise(Wolf, 2000, 4000)
 var logIt = 0
+
+function resetVars() {
+  wolfNoise = new WolfNoise(Wolf, 2000, 4000)
+  tranceLevel = 0
+  noiseLevel = 0
+  lastNoiseLevel = 0
+  lastTickTime = 0
+}
 
 function gameLoop(event: Object) {
   let time = createjs.Ticker.getTime();
@@ -301,10 +312,14 @@ function gameLoop(event: Object) {
       playYouWonScene()
     }
   } else if (noiseLevel >= 10) {
-    playYouLostScene()
+    playYouLostScene("youlosetv")
   }
   if (tranceLevel < 0) {
-    playYouLostScene()
+    if (TvNoise.active) {
+      playYouLostScene("youlosetv")
+    } else {
+      playYouLostScene("youlosewolf")
+    }
   }
 
   // end of variable updates, only displays below
@@ -359,6 +374,7 @@ function startScenes() {
 // intro page function
 function playIntroScene() {
   // make the stage
+  stage.removeAllChildren()
 
   // elements of the title page
   var cabinBitmap = new createjs.Bitmap(queue.getResult("introcabin"))
@@ -475,11 +491,16 @@ function handleKeyEvent(event: Object) {
 }
 
 function playGameScene() {
+  stage.removeAllChildren()
+  gameContainer.removeAllChildren()
+  resetVars()
   walkingNoise = new PlayerNoise(Walking)
   TvNoise = new PlayerNoise(Tv)
   // setTimeout(function () {
   //   TvNoise.active = true
   // }, 1000)
+  backgroundMusic = createjs.Sound.play("background_music", { loop: true })
+  backgroundMusic.volume = .4
 
   // create a background rectangle
   outerwall.graphics.beginFill("#4d1c20").drawRect(0, 0, canvas.width, canvas.height)
@@ -566,7 +587,6 @@ function playGameScene() {
   // Update stage will render next frame
   stage.update()
   createjs.Ticker.addEventListener("tick", gameLoop)
-  playerSprite.gotoAndPlay("run")
 }
 
 
@@ -574,30 +594,58 @@ function playGameScene() {
 // "you won" page function
 function playYouWonScene() {
   wolfNoise.active = false
-  canvas = <HTMLCanvasElement>stage.canvas
+  if (wolfNoise.soundInstance) {
+    wolfNoise.soundInstance.muted = true
+  }
+  TvNoise.active = false
+  TvNoise.soundInstance.muted = true
+  createjs.Ticker.reset()
+  backgroundMusic.muted = true
+  backgroundMusic.destroy()
+  var youWinSound = createjs.Sound.play("youwin")
   stage.removeAllChildren()
   // place some "you won!" text on the screen (declared at the top)
   youWonText.x = 360
   youWonText.y = 115
   youWonText.textBaseline = "alphabetic";
+  createjs.Ticker.removeEventListener("tick", gameLoop)
 
-  stage.addChild(youWonText)
+  stage.addChild(youWonText, playAgainText)
 
   stage.update()
+  canvas.onclick = () => {
+    canvas.onclick = null
+    startScenes()
+  }
 }
 
-function playYouLostScene() {
+function playYouLostScene(losingSound: string) {
   wolfNoise.active = false
+  if (wolfNoise.soundInstance) {
+    wolfNoise.soundInstance.muted = true
+  }
+  TvNoise.active = false
+  TvNoise.soundInstance.muted = true
+  createjs.Ticker.reset()
+  backgroundMusic.muted = true
+  backgroundMusic.destroy()
+  var youLoseSound = createjs.Sound.play(losingSound)
   canvas = <HTMLCanvasElement>stage.canvas
   stage.removeAllChildren()
   // place some "you won!" text on the screen (declared at the top)
   youLostText.x = 360
   youLostText.y = 115
   youLostText.textBaseline = "alphabetic";
+  playAgainText.x = 330
+  playAgainText.y = 300
 
-  stage.addChild(youLostText)
+  stage.addChild(youLostText, playAgainText)
 
   stage.update()
+  canvas.onclick = () => {
+    canvas.onclick = null
+    startScenes()
+  }
 }
 
 // "you lost" page function

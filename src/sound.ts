@@ -24,7 +24,11 @@ export function loadSounds(queue: createjs.LoadQueue, next: () => void, progress
     { id: "tvimage", src: "res/tvimage.png" },
     { id: "spritesheetimage", src: "res/player-spritemap-v9-redpants.png" },
     { id: "chairimage", src: "res/chair.png" },
-    { id: "wolfimage", src: "res/wolf.png" }
+    { id: "wolfimage", src: "res/wolf.png" },
+    { id: "youlosewolf", src: "res/you_lose_wolf.mp3" },
+    { id: "youlosetv", src: "res/you_lose_tv.mp3" },
+    { id: "youwin", src: "res/you_win.mp3" },
+    { id: "background_music", src: "res/background_music.mp3" }
   ])
 }
 
