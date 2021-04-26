@@ -6,6 +6,7 @@ let TvNoise: PlayerNoise
 let walkingNoise: PlayerNoise
 let tranceLevel = 0
 let noiseLevel = 0
+let lastNoiseLevel = 0
 let lastTickTime = 0
 let canvas: HTMLCanvasElement
 // var introContainer = new createjs.Container()
@@ -18,6 +19,7 @@ var dashboard_fg = new createjs.Shape();
 var trancelabel = new createjs.Text("Trance level:", "20px Arial", "#bdbef2");
 var noiselabel = new createjs.Text("Noise level:", "20px Arial", "#bdbef2");
 var youWonText = new createjs.Text("You won!", "20px Arial", "#bdbef2");
+var youLostText = new createjs.Text("You lost!", "20px Arial", "#bdbef2");
 var tranceleveltext = new createjs.Text("#", "20px Arial", "#bdbef2");
 var noiseleveltext = new createjs.Text("#", "20px Arial", "#bdbef2");
 var trancetable = new createjs.Shape();
@@ -60,6 +62,63 @@ class TimedNoise {
   getActiveNoiseLevel(time: number): number {
     if (this.startTime <= time && time < (this.startTime + this.noise.durationMs)) {
       return this.noise.noiseLevel
+    }
+    return 0
+  }
+}
+
+class WolfNoise {
+  startTime: number
+  noise: Noise
+  distressLevel: number = 0
+  startDistressLevel: number = 0
+  maxDistressLevel: number = 4
+  active: boolean = false
+  repeatAfter: number
+  initialStartTime: number
+  soundInstance?: createjs.AbstractSoundInstance = undefined
+  endTime: number
+  constructor(n: Noise, startTime: number, repeatAfter: number) {
+    this.startTime = startTime
+    this.noise = n
+    this.repeatAfter = repeatAfter
+    this.endTime = startTime + n.durationMs
+    this.initialStartTime = startTime
+  }
+  tick(time: number) {
+    if (!this.active) {
+      this.distressLevel = this.startDistressLevel
+      if (this.soundInstance) {
+        this.soundInstance!.muted = true
+        this.soundInstance = undefined
+      }
+      this.startTime = 0
+      this.endTime = 0
+      return
+    }
+    if (this.active && !this.startTime) {
+      this.startTime = time + this.initialStartTime
+      this.endTime = this.startTime + this.noise.durationMs
+    }
+    if (this.soundInstance && time >= this.endTime) {
+      this.endTime = this.startTime + this.noise.durationMs
+      this.soundInstance = undefined
+      if (this.repeatAfter) {
+        this.distressLevel = Math.min(this.distressLevel + 1, this.maxDistressLevel)
+        this.startTime += this.noise.durationMs + this.repeatAfter
+        this.endTime = this.startTime + this.noise.durationMs
+      }
+    }
+    if (this.startTime <= time && !this.soundInstance) {
+      this.soundInstance = createjs.Sound.play(this.noise.sound)
+      this.soundInstance.volume = (this.distressLevel + 1) / (this.maxDistressLevel + 1)
+    }
+  }
+  getActiveNoiseLevel(time: number): number {
+    if (this.active) {
+      if (this.startTime <= time && time < this.endTime) {
+        return this.noise.noiseLevel + this.distressLevel
+      }
     }
     return 0
   }
@@ -141,14 +200,7 @@ class Player {
   }
 }
 
-var noises = [
-  new TimedNoise(OutsideWindow, 2000),
-  new TimedNoise(Wolf, 3000),
-  new TimedNoise(Wolf, 6000),
-  new TimedNoise(OutsideWindow, 7000),
-]
-
-
+let wolfNoise = new WolfNoise(Wolf, 2000, 3000)
 var logIt = 0
 
 function gameLoop(event: Object) {
@@ -170,8 +222,11 @@ function gameLoop(event: Object) {
 
   tranceleveltext.text = roundedTranceLevel.toString();
   noiseleveltext.text = noiseLevel.toString();
-  if (tranceLevel >= 5) {
+  if (tranceLevel >= 15) {
     playYouWonScene()
+  }
+  if (tranceLevel < 0) {
+    playYouLostScene()
   }
 
   let e = <Event>(event);
@@ -181,11 +236,15 @@ function gameLoop(event: Object) {
 
 function updateNoiseLevel(time: number) {
   noiseLevel = 0
-  for (var n of noises) {
-    n.tick(time)
-    noiseLevel += n.getActiveNoiseLevel(time)
+  wolfNoise.tick(time)
+  noiseLevel += walkingNoise.getActiveNoiseLevel(time) + TvNoise.getActiveNoiseLevel(time) + wolfNoise.getActiveNoiseLevel(time)
+  if (noiseLevel > lastNoiseLevel) {
+    if (noiseLevel >= 5) {
+      tranceLevel -= (noiseLevel - 5)
+      tranceLevel = Math.floor(tranceLevel)
+    }
   }
-  noiseLevel += walkingNoise.getActiveNoiseLevel(time) + TvNoise.getActiveNoiseLevel(time)
+  lastNoiseLevel = noiseLevel
 }
 
 function updateTranceLevel(deltaTime: number) {
@@ -290,7 +349,7 @@ function playGameScene() {
   dashboard_fg.x = 210
   dashboard_fg.y = 40
 
-  
+
   // metrics text labels
   trancelabel.x = 225
   trancelabel.y = 75
@@ -321,6 +380,7 @@ function playGameScene() {
   wolfBitmap.x = canvas.width - 150
   wolfBitmap.y = canvas.height - 100
   wolfBitmap.scaleX = wolfBitmap.scaleY = .2
+  wolfNoise.active = true
 
   // tv
   var tvBitmap = new createjs.Bitmap("res/tvimage.png");
@@ -349,7 +409,7 @@ function playGameScene() {
   player = new Player(playerSprite, canvas.width / 2, canvas.height - 100, 46, 50)
 
   // add elements to the container for this scene
-  gameContainer.addChild(outerwall, innerwall, dashboard_bg, dashboard_fg, trancelabel, noiselabel, tranceleveltext, noiseleveltext, trancetable, wolfBitmap, tvBitmap, chairBitmap,  playerSprite)
+  gameContainer.addChild(outerwall, innerwall, dashboard_bg, dashboard_fg, trancelabel, noiselabel, tranceleveltext, noiseleveltext, trancetable, wolfBitmap, tvBitmap, chairBitmap, playerSprite)
   gameContainer.setChildIndex(outerwall, 0)
   gameContainer.setChildIndex(innerwall, 1)
   stage.addChild(gameContainer)
@@ -364,6 +424,7 @@ function playGameScene() {
 
 // "you won" page function
 function playYouWonScene() {
+  wolfNoise.active = false
   canvas = <HTMLCanvasElement>stage.canvas
   stage.removeAllChildren()
   // place some "you won!" text on the screen (declared at the top)
@@ -372,6 +433,20 @@ function playYouWonScene() {
   youWonText.textBaseline = "alphabetic";
 
   stage.addChild(youWonText)
+
+  stage.update()
+}
+
+function playYouLostScene() {
+  wolfNoise.active = false
+  canvas = <HTMLCanvasElement>stage.canvas
+  stage.removeAllChildren()
+  // place some "you won!" text on the screen (declared at the top)
+  youLostText.x = 360
+  youLostText.y = 115
+  youLostText.textBaseline = "alphabetic";
+
+  stage.addChild(youLostText)
 
   stage.update()
 }
