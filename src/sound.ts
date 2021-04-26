@@ -17,7 +17,7 @@ export function loadSounds(queue: createjs.LoadQueue, next: () => void, progress
     }
   })
   queue.loadManifest([
-    { id: "wolf", src: "res/wolf.mp3" },
+    { id: "wolf", src: "res/wolf.wav" },
     { id: "outside", src: "res/outside.mp3" },
     { id: "introcabin", src: "res/introcabin.jpg" },
     { id: "tvnoise", src: "res/tvsound.mp3" },

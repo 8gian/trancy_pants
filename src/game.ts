@@ -368,7 +368,7 @@ function init() {
 }
 
 function startScenes() {
-  playIntroScene()
+  playGameScene()
 }
 
 // intro page function
@@ -450,7 +450,7 @@ function playIntroScene() {
       playGameScene()
     }
   }, 7500)
-  
+
 }
 
 function handleKeyEvent(event: Object) {
@@ -644,7 +644,7 @@ function playYouLostScene(losingSound: string) {
   stage.update()
   canvas.onclick = () => {
     canvas.onclick = null
-    startScenes()
+    playGameScene()
   }
 }
 
