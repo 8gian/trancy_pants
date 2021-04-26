@@ -24,7 +24,7 @@ var trancetable = new createjs.Shape();
 let greycircle = new createjs.Shape()
 var wolflabel = new createjs.Text("Wolf", "20px Arial", "#302a36");
 var tranceRate: number = 0.0005
-var walkSpeed: number = 15 / 1000
+var walkSpeed: number = 20 / 1000
 var queue = new createjs.LoadQueue(false);
 var player: Player
 
