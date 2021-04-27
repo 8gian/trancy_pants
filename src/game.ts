@@ -16,9 +16,27 @@ var dashboard_bg = new createjs.Shape();
 var dashboard_fg = new createjs.Shape();
 var titleText1 = new createjs.Text("You are the famous Dr. Trancy Pants, M.D.", "30px Arial", "#fffdfa")
 var titleText2 = new createjs.Text("With your help, budding magicians can advance\ntheir studies by entering a deep trance.", "30px Arial", "#fffdfa")
-var titleText3 = new createjs.Text("Keep your cabin quiet. If it gets too loud you'll\nwake the magician.", "30px Arial", "#fffdfa")
+var titleText3 = new createjs.Text("Keep your cabin quiet. If it gets too loud, the trance will be interrupted,\nor worse, you'll even wake the magician.\nYour trusty magic wolf Tiesto and your phantom TV \ncan both make a lot of noise.", "20px Arial", "#fffdfa")
 var titleText4 = new createjs.Text("Don't forget to wake them up at the end,\nor they'll sleep forever.", "30px Arial", "#fffdfa")
 var titleText5 = new createjs.Text("Click to begin!", "30px Arial", "#fffdfa");
+const fallingIntoATranceMessage = "The magician is falling into a trance"
+const wolfAgitatedOnMessage = "The TV is on, and Tiesto seems agitated"
+const wolfAgitatedMessage = "Tiesto seems agitated"
+const wolfQuietedMessage = "You quieted Tiesto"
+const tvTurnedOffMessage = "You turned off the phantom TV"
+const tvTurnedOnMessage = "You turned on the phantom TV"
+const tvOnMessage = "The phantom TV is on"
+const tvTurnedOnSelfMessage = "The phantom TV turned on by itself!"
+const tvOnWolfHowlingMessage = "The TV is on, and Tiesto is howling"
+const tvOnWolfHowlingLoudlyMessage = "The TV is on, and Tiesto is howling loudly"
+const tvOnWolfHowlingGrowingMessage = "The TV is on, and Tiesto's howls grow louder"
+const wolfNotAgitatedMessage = "Tiesto no longer seems agitated"
+const wolfStartsHowlingMessage = "Tiesto is so agitated he starts howling"
+const wolfHowlingMessage = "Tiesto is howling"
+const wolfHowlingGrowingMessage = "Tiesto's howls grow louder"
+const wolfHowlingLoudlyMessage = "Tiesto is howling loudly"
+const tranceWakeUpMessage = "The magician's in a trance. Time to wake them up!"
+var statusMessage = new createjs.Text(fallingIntoATranceMessage, "16px Arial", "#bdbef2")
 var tt1bg = new createjs.Shape();
 var tt4bg = new createjs.Shape();
 var tt5bg = new createjs.Shape();
@@ -31,11 +49,13 @@ var tranceleveltext = new createjs.Text("#", "20px Arial", "#bdbef2");
 var noiseleveltext = new createjs.Text("#", "20px Arial", "#bdbef2");
 var trancetable = new createjs.Shape();
 var tranceRate: number = 0.0003
-var walkSpeed: number = 40 / 1000
+var tranceProgress: ProgressBar
+var walkSpeed: number = 75 / 1000
 var queue = new createjs.LoadQueue(false);
 var player: Player
 var wolfBitmap: createjs.Bitmap
 var chairBitmap: createjs.Bitmap
+var wizBitmap: createjs.Bitmap
 var tvBitmap: createjs.Bitmap
 let backgroundMusic: createjs.AbstractSoundInstance
 
@@ -153,15 +173,20 @@ class PlayerNoise {
   noise: Noise
   soundInstance: createjs.AbstractSoundInstance
   active: boolean = false
+  startTime: number = 0
   constructor(n: Noise) {
     this.noise = n
     this.soundInstance = createjs.Sound.play(this.noise.sound, { loop: -1, volume: 0 })
   }
   getActiveNoiseLevel(time: number): number {
     if (this.active) {
+      if (this.startTime == 0) {
+        this.startTime = time
+      }
       this.soundInstance.volume = 1
       return this.noise.noiseLevel
     } else {
+      this.startTime = 0
       this.soundInstance.volume = 0
     }
     return 0
@@ -183,6 +208,10 @@ class Player {
   onWolf: boolean = false
   onTv: boolean = false
   timeOnTv: number = 0
+  wolfQuietedTime: number = 0
+  wolfAgitatedTime: number = 0
+  timeOffTv: number = 0
+  phantomTvTime: number = 0
 
   constructor(sprite: createjs.Sprite, startX: number, startY: number, width: number, height: number) {
     this.sprite = sprite
@@ -241,12 +270,20 @@ class Player {
     this.sprite.y = this.y
     if (this.onTv) {
       this.timeOnTv += time - lastTickTime
+      this.timeOffTv = 0
     } else {
+      if (this.timeOffTv == 0) {
+        this.timeOffTv = time
+      }
       this.timeOnTv = 0
     }
-    this.performInteractions()
+    this.performInteractions(time)
     if (this.onTv && this.timeOnTv > 3000) {
       wolfNoise.active = true
+      this.wolfAgitatedTime = time
+    }
+    if (this.onWolf) {
+      this.wolfQuietedTime = time
     }
   }
   ejectSpriteFromObjects(): boolean {
@@ -267,19 +304,73 @@ class Player {
     }
     return false
   }
-  performInteractions() {
+  performInteractions(time: number) {
     var newOnWolf = boundsCollide(this.getBounds(), cropBounds(wolfBitmap.getTransformedBounds(), 15, 11))
     var newOnTv = boundsCollide(this.getBounds(), tvBitmap.getTransformedBounds())
     if (newOnTv && !this.onTv) {
       TvNoise.active = !TvNoise.active
     }
     if (newOnWolf && this.onWolf) {
-      console.log("hit wolf")
       wolfNoise.active = false
-      setTimeout(() => { TvNoise.active = true }, 4000)
+      var self = this
+      setTimeout(() => {
+        if (!TvNoise.active) {
+          self.phantomTvTime = time + 4000
+          TvNoise.active = true
+        }
+      }, 4000)
     }
     this.onWolf = newOnWolf
     this.onTv = newOnTv
+  }
+  pickBestMessage(time: number) {
+    if (time > 2000 && time <= this.wolfQuietedTime + 2000) {
+      return wolfQuietedMessage
+    }
+    if (this.onTv && this.timeOnTv <= 1000) {
+      if (TvNoise.active) {
+        return tvTurnedOnMessage
+      } else {
+        return tvTurnedOffMessage
+      }
+    }
+    if (!wolfNoise.active) {
+      if (this.timeOnTv > 1000 && this.timeOnTv <= 4000) {
+        if (TvNoise.active) {
+          return wolfAgitatedOnMessage
+        } else {
+          return wolfAgitatedMessage
+        }
+      }
+      if (time > 2000 && time < this.timeOffTv + 2000) {
+        return wolfNotAgitatedMessage
+      }
+    } else {
+      if (time > 2000 && time < this.wolfAgitatedTime + 2000) {
+        return wolfStartsHowlingMessage
+      }
+    }
+    if (time >= wolfNoise.startTime && time <= wolfNoise.endTime) {
+      if (wolfNoise.distressLevel == wolfNoise.startDistressLevel) {
+        return TvNoise.active ? tvOnWolfHowlingMessage : wolfHowlingMessage
+      } else if (wolfNoise.distressLevel == wolfNoise.maxDistressLevel) {
+        return TvNoise.active ? tvOnWolfHowlingLoudlyMessage : wolfHowlingLoudlyMessage
+      }
+      return TvNoise.active ? tvOnWolfHowlingGrowingMessage : wolfHowlingGrowingMessage
+    }
+    if (TvNoise.active && time < this.phantomTvTime + 2000) {
+      return tvTurnedOnSelfMessage
+    }
+    if (noiseLevel < 3) {
+      if (tranceLevel >= 10) {
+        return tranceWakeUpMessage
+      }
+      return fallingIntoATranceMessage
+    }
+    if (TvNoise.active) {
+      return tvOnMessage
+    }
+    return ""
   }
 }
 
@@ -323,6 +414,7 @@ function gameLoop(event: Object) {
   }
 
   // end of variable updates, only displays below
+  tranceProgress.handleProgress(new createjs.ProgressEvent(tranceLevel, 10))
   var roundedTranceLevel = (Math.round(tranceLevel * 100) / 100)
   if (logIt % 14 == 0) {
     // console.log("time: " + (time / 1000) + ", trance: " + roundedTranceLevel + ", noise: " + noiseLevel)
@@ -330,6 +422,7 @@ function gameLoop(event: Object) {
   logIt++
   tranceleveltext.text = roundedTranceLevel.toString();
   noiseleveltext.text = noiseLevel.toString();
+  statusMessage.text = player.pickBestMessage(time)
   stage.update();
   lastTickTime = time;
 }
@@ -363,7 +456,7 @@ function init() {
   canvas = <HTMLCanvasElement>stage.canvas
   document.addEventListener("keydown", handleKeyEvent)
   document.addEventListener("keyup", handleKeyEvent)
-  var progressBar = new ProgressBar(stage, true)
+  var progressBar = new ProgressBar(stage, true, 0, 0, 0, 0)
   loadSounds(queue, startScenes, progressBar)
 }
 
@@ -383,7 +476,7 @@ function playIntroScene() {
   stage.addChild(cabinBitmap)
 
 
-  tt1bg.graphics.beginFill("#406e20").drawRoundRectComplex(0, 0, 660, 230, 10, 10, 10, 10)
+  tt1bg.graphics.beginFill("#406e20").drawRoundRectComplex(0, 0, 660, 250, 10, 10, 10, 10)
   tt1bg.x = 95
   tt1bg.y = 60
 
@@ -499,7 +592,7 @@ function playGameScene() {
   // setTimeout(function () {
   //   TvNoise.active = true
   // }, 1000)
-  backgroundMusic = createjs.Sound.play("background_music", { loop: true })
+  backgroundMusic = createjs.Sound.play("background_music", { loop: -1 })
   backgroundMusic.volume = .4
 
   // create a background rectangle
@@ -509,12 +602,12 @@ function playGameScene() {
   innerwall.graphics.beginFill("#7e6a94").drawRect(15, 15, canvas.width - 30, canvas.height - 30)
 
   // dashboard displaying trance level and noise level
-  dashboard_bg.graphics.beginFill("#141670").drawRoundRectComplex(0, 0, 400, 120, 5, 5, 5, 5)
+  dashboard_bg.graphics.beginFill("#141670").drawRoundRectComplex(0, 0, 400, 140, 5, 5, 5, 5)
   dashboard_bg.x = 200
   dashboard_bg.y = 30
   dashboard_bg.setBounds(0, 0, 400, 120)
 
-  dashboard_fg.graphics.beginFill("#393cdb").drawRoundRectComplex(0, 0, 380, 100, 5, 5, 5, 5)
+  dashboard_fg.graphics.beginFill("#393cdb").drawRoundRectComplex(0, 0, 380, 120, 5, 5, 5, 5)
   dashboard_fg.x = 210
   dashboard_fg.y = 40
 
@@ -537,6 +630,11 @@ function playGameScene() {
   noiseleveltext.y = 115
   noiseleveltext.textBaseline = "alphabetic";
 
+  statusMessage.x = 225
+  statusMessage.y = 145
+  statusMessage.textBaseline = "alphabetic";
+
+
   // trance table!
   trancetable.graphics.beginFill("#bdf2e2").drawRect(0, 0, 250, 120)
   trancetable.x = 275
@@ -551,6 +649,11 @@ function playGameScene() {
   wolfBitmap.y = canvas.height - 100
   wolfBitmap.scaleX = wolfBitmap.scaleY = .2
   wolfNoise.active = true
+
+  wizBitmap = new createjs.Bitmap(queue.getResult("wizardimage"))
+  wizBitmap.x = 295
+  wizBitmap.y = 275
+  wizBitmap.scaleX = wizBitmap.scaleY = .4
 
   // tv
   tvBitmap = new createjs.Bitmap(queue.getResult("tvimage"));
@@ -579,9 +682,11 @@ function playGameScene() {
   player = new Player(playerSprite, canvas.width / 2, canvas.height - 100, 46, 50)
 
   // add elements to the container for this scene
-  gameContainer.addChild(outerwall, innerwall, dashboard_bg, dashboard_fg, trancelabel, noiselabel, tranceleveltext, noiseleveltext, trancetable, wolfBitmap, tvBitmap, chairBitmap, playerSprite)
+  gameContainer.addChild(outerwall, innerwall, dashboard_bg, dashboard_fg, trancelabel, noiselabel, /*tranceleveltext,*/ noiseleveltext, statusMessage, trancetable, wizBitmap, wolfBitmap, tvBitmap, chairBitmap, playerSprite)
   gameContainer.setChildIndex(outerwall, 0)
   gameContainer.setChildIndex(innerwall, 1)
+  tranceProgress = new ProgressBar(stage, false, 360, 50, 220, 40)
+  gameContainer.addChild(tranceProgress.outerBar, tranceProgress.innerBar)
   stage.addChild(gameContainer)
 
   // Update stage will render next frame

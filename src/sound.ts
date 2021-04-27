@@ -28,6 +28,7 @@ export function loadSounds(queue: createjs.LoadQueue, next: () => void, progress
     { id: "youlosewolf", src: "res/you_lose_wolf.mp3" },
     { id: "youlosetv", src: "res/you_lose_tv.mp3" },
     { id: "youwin", src: "res/you_win.mp3" },
+    { id: "wizardimage", src: "res/wizard.png" },
     { id: "background_music", src: "res/background_music.mp3" }
   ])
 }
